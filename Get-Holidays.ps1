@@ -11,7 +11,7 @@
 # De eerste vakantie die het script teruggeeft, zal dus de herfstvakantie (voor het jaar 2000) zijn
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
-    $schooljaar   = 2023
+    $schooljaar = 2023
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 # Voor hoeveel schooljaren ver wil je de vakantiedagen berekenen?
@@ -19,7 +19,7 @@
 # minimum: 1
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
-    $aantalSchooljaren = 1
+    $aantalSchooljaren = 3
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 # Toon brugdag na Hemelvaart?
@@ -83,30 +83,12 @@
 
         Write-Debug "Herfstvakantie $schooljaar"
 
-        # heel misschien start de herfstvakantie dit jaar wel op 1 november? 🤞
+        $november1th = [DateTime]"$schooljaar-11-1"
 
-        $herfstvakantieStart = Get-Date -Day 1 -Month 11 -Year $schooljaar -Hour 0 -Minute 0 -Second 0
-
-        # op welke dag valt 1 november?
-        switch ( $herfstvakantieStart.DayOfWeek.value__ )
-        {
-            # valt 1 november op een zondag, dan start de herfstvakantie op de 2e kalenderdag
-    
-            0 { $herfstvakantieStart = $herfstvakantieStart.AddDays(1) } 
-
-            # in alle andere gevallen gaan we op zoek naar de eerste maandag
-            # door telkens naar links op te schuiven in de kalender tot we die maandag gevonden hebben
-
-            default
-            {
-
-                # aangezien we gaan while-en, moeten we de startwaarde alvast vastklikken naar de eindwaarde
-                # want het $herfstvakantieStart dat we telkens gaan overschrijven
-
-                while ( $herfstvakantieStart.DayOfWeek.value__ -ne 1 ) { $herfstvakantieStart = $herfstvakantieStart.AddDays(-1) }
-            }
-
-        } # end switch
+        # Ga op zoek naar de eerste maandag van de huidige maand
+        # Valt 1 november bijvoorbeeld op een vrijdag (5) dan moeten we 4 dagen terug om op maandag uit te komen.
+        # - 5 + 1 = -4
+        $herfstvakantieStart = $november1th.AddDays(- $november1th.DayOfWeek.value__ +1)
 
         # de herfstvakantie duurt 7 dagen
 
@@ -120,7 +102,7 @@
 
         Write-Debug "Wapenstilstand $schooljaar"
 
-        $wapenstilstand = Get-Date -Day 11 -Month 11 -Year $schooljaar -Hour 0 -Minute 0 -Second 0
+        $wapenstilstand = [DateTime]"$schooljaar-11-11"
 
         "$($wapenstilstand.ToString($dateFormat)),wapenstilstand" | Out-File $outFile -Append
 
@@ -132,29 +114,27 @@
         #----------------------------------------------------------------------------------------------------------------------------------------
 
         Write-Debug "Kerstvakantie $schooljaar"
-        
-        # heel misschien start de kerstvakantie dit jaar wel op kerstdag? 🤞
 
-        $kerstvakantieStart = Get-Date -Day 25 -Month 12 -Year $schooljaar -Hour 0 -Minute 0 -Second 0
+        $kerstDag = [DateTime]"$schooljaar-12-25"
 
-        # op welke dag valt kerstdag?
+        # Valt kerstdag op een zaterdag (6) of zondag (0), dan begint de kerstvakantie op kerstmaandag
 
-        switch ( $kerstvakantieStart.DayOfWeek.value__ )
+        if ( $kerstDag.DayOfWeek.value__ -eq 6)
         {
+            $kerstvakantieStart = $kerstDag.AddDays(2)
+        }
+        elseif ( $kerstDag.DayOfWeek.value__ -eq 0 )
+        {
+            $kerstvakantieStart = $kerstDag.AddDays(1)
+        }
 
-            # Valt kerstdag op een zaterdag (6) of zondag (0), dan begint de kerstvakantie op kerstmaandag
+        # In alle andere gevallen begint de kerstvakantie op de maandag van de week waarin kerstdag valt
+        # Valt kerstdag op een maandag, dan begint de kerstvakantie dus op kerstdag
 
-            { $_ -in 6, 0} {
-               while ( $kerstvakantieStart.DayOfWeek.value__ -ne 1 ) { $kerstvakantieStart = $kerstvakantieStart.AddDays(1) }
-            }
-
-            # In alle andere gevallen begint de kerstvakantie op de maandag van de week waarin kerstdag valt
-            # Valt kerstdag op een maandag, dan begint de kerstvakantie op kerstdag
-            default {
-                while ( $kerstvakantieStart.DayOfWeek.value__ -ne 1 ) { $kerstvakantieStart = $kerstvakantieStart.AddDays(-1) }
-            }
-
-        } # end switch
+        else
+        {
+            $kerstvakantieStart = $kerstDag.AddDays(- $kerstDag.DayOfWeek.value__ +1)
+        }
 
         # de kerstvakantie duurt 14 dagen
 
@@ -162,7 +142,6 @@
             "$($kerstvakantieStart.AddDays($i).ToString($dateFormat)),kerstvakantie" | Out-File $outFile -Append
         }
         
-
     #--------------------------------------------------------------------------------------------------------------------------------------------
     # Een nieuw kalenderjaar!
     #--------------------------------------------------------------------------------------------------------------------------------------------
@@ -197,7 +176,7 @@
         $month = [math]::Floor($month)
         [int]$day = (($h + $l - 7*$m + 114) % 31)+1
     
-        $easterSunday = Get-Date -Day $day -Month $month -Year $schooljaar -Hour 0 -Minute 0 -Second 0
+        $easterSunday = [DateTime]"$schooljaar-$month-$day"
         
         #----------------------------------------------------------------------------------------------------------------------------------------
         # Krokusvakantie
@@ -207,9 +186,9 @@
 
         Write-Debug "Krokusvakantie $schooljaar"
 
-        # Door 7 keer 7 dagen terug te keren (-7*7) vallen we op de 7e zondag voor pasen.
-        # Daarom tellen we er weer 1 dag bij, om op die maandag uit te komen
-        # In toaal moeten we dus 48 dagen terug in de tijd
+        # Door 7 keer 7 dagen terug te keren (-7*7) komen we uit op de 7e zondag voor pasen.
+        # Daarom tellen we er nog 1 dag bij, om op de gewenste maandag uit te komen
+        # In totaal moeten we dus 48 dagen terug in de tijd
 
         $krokusvakantieStart = $easterSunday.AddDays(-48)
 
@@ -231,9 +210,8 @@
 
         Write-Debug "Paasvakantie $schooljaar"
 
-        $april15th =  Get-Date -Day 15 -Month 04 -Year $schooljaar -Hour 0 -Minute 0 -Second 0
-
-        $paasvakantieStart = Get-Date -Day 01 -Month 04 -Year $schooljaar -Hour 0 -Minute 0 -Second 0
+        $april1th  = [DateTime]"$schooljaar-04-01"
+        $april15th =  [DateTime]"$schooljaar-04-15"
 
         # Als de feestdag Pasen in de maand maart valt, dan begint de Paasvakantie op de maandag na Pasen.
 
@@ -245,7 +223,11 @@
 
         # in alle andere gevallen begint de paasvakantie op de 1ste maandag van April
 
-        else { while ( $paasvakantieStart.DayOfWeek.value__ -ne 1 ) { $paasvakantieStart = $paasvakantieStart.AddDays(1) } }
+        else
+        {   
+            if ( $april1th.DayOfWeek.value__ -le 1) { $paasvakantieStart = $april1th.AddDays(1 - $april1th.DayOfWeek.value__) }
+            else { $paasvakantieStart = $april1th.AddDays(8 - $april1th.DayOfWeek.value__) }
+        }
 
         # de paasvakantie duurt 14 dagen
 
@@ -259,7 +241,7 @@
 
         Write-Debug "Dag van de Arbeid $schooljaar"
 
-        $dagVanDeArbeid = Get-Date -Day 01 -Month 05 -Year $schooljaar -Hour 0 -Minute 0 -Second 0
+        $dagVanDeArbeid = [DateTime]"$schooljaar-05-01"
 
         "$($dagVanDeArbeid.ToString($dateFormat)),dag van de arbeid" | Out-File $outFile -Append
 
@@ -297,7 +279,7 @@
 
         Write-Debug "Zomervakantie $schooljaar"
 
-        $zomervakantieStart = Get-Date -Day 01 -Month 07 -Year $schooljaar -Hour 0 -Minute 0 -Second 0
+        $zomervakantieStart = [DateTime]"$schooljaar-07-01"
 
         # de zomervakantie duurt 62 dagen
 
